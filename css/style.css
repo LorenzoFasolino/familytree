@@ -24,9 +24,10 @@
     --danger: #ef4444;
     --danger-hover: #dc2626;
 
-    /* Connection Lines */
-    --line-color: #cbd5e1;
-    --line-partner: #f472b6;
+    /* Connection Lines - improved contrast */
+    --line-color: #94a3b8;
+    --line-partner: #ec4899;
+    --line-highlight: #6366f1;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -84,7 +85,9 @@
     --border-light: #1e293b;
 
     --accent-light: #312e81;
-    --line-color: #475569;
+    --line-color: #64748b;
+    --line-partner: #f472b6;
+    --line-highlight: #818cf8;
 
     --glass-bg: rgba(30, 41, 59, 0.8);
     --glass-border: rgba(51, 65, 85, 0.5);
@@ -435,6 +438,10 @@ h6 {
 
 .tree-node.female {
     border-left: 4px solid #ec4899;
+    border-radius: 100px;
+    /* Oval/Capsule shape */
+    padding-left: calc(var(--space-md) + 4px);
+    /* Compensate text alignment? No, just shape. */
 }
 
 .tree-node.other {
@@ -502,23 +509,47 @@ h6 {
 
 .connection-line {
     stroke: var(--line-color);
-    stroke-width: 2;
+    stroke-width: 2.5;
     fill: none;
     transition: all 0.3s ease;
-    cursor: pointer;
+    pointer-events: stroke;
 }
 
 .connection-line:hover,
 .connection-line.highlight {
+    stroke: var(--line-highlight, var(--accent-primary));
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 3px var(--line-highlight, var(--accent-primary)));
+}
+
+/* Ancestry/descendant path highlight */
+.connection-line.path-highlight {
     stroke: var(--accent-primary);
     stroke-width: 4px;
-    filter: drop-shadow(0 0 2px var(--accent-primary));
+    filter: drop-shadow(0 0 4px var(--accent-primary));
+    opacity: 1;
+}
+
+/* Dim non-highlighted lines when path is active */
+.tree-canvas.path-active .connection-line:not(.path-highlight) {
+    opacity: 0.25;
+    transition: opacity 0.2s ease;
+}
+
+.tree-canvas.path-active .tree-node:not(.path-highlight) {
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+}
+
+.tree-canvas.path-active .tree-node.path-highlight {
+    box-shadow: 0 0 0 3px var(--accent-primary), var(--shadow-lg);
     z-index: 10;
 }
 
 .connection-line.partner {
     stroke: var(--line-partner);
-    stroke-dasharray: 5, 5;
+    stroke-width: 3;
+    stroke-dasharray: 8, 4;
 }
 
 /* ===========================
@@ -725,6 +756,97 @@ h6 {
     opacity: 1;
 }
 
+/* Relation actions container */
+.relation-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Split/unsplit buttons */
+.relation-split,
+.relation-unsplit {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    opacity: 0.6;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+.relation-split:hover {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    opacity: 1;
+}
+
+.relation-unsplit:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    opacity: 1;
+}
+
+/* Ghost badge */
+.ghost-badge {
+    margin-left: 4px;
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+/* Ghost (split) relation item */
+.relation-item.is-ghost {
+    border: 1px dashed var(--accent-primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.relation-item.is-ghost .relation-name {
+    color: var(--accent-primary);
+}
+
+/* Ghost Nodes in Tree View */
+.tree-node.ghost-node {
+    border: 2px dashed var(--accent-primary);
+    background: rgba(99, 102, 241, 0.08);
+    opacity: 0.9;
+}
+
+.tree-node.ghost-node:hover {
+    border-color: var(--accent-secondary);
+    background: rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.tree-node.ghost-node .node-name::after {
+    content: " 👻";
+    font-size: 0.75rem;
+}
+
+.ghost-badge-nav {
+    color: var(--accent-primary) !important;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.ghost-badge-nav:hover {
+    text-decoration: underline;
+}
+
+/* Ghost connection line */
+.connection-line.ghost-connection {
+    stroke: var(--accent-primary);
+    stroke-dasharray: 6, 4;
+    opacity: 0.7;
+}
+
 /* ===========================
    Quick Add Menu
    =========================== */
@@ -887,6 +1009,129 @@ h6 {
 .confirm-warning {
     font-size: 0.875rem !important;
     color: var(--text-muted) !important;
+}
+
+/* Notes Modal */
+.modal-notes {
+    max-width: 700px;
+    min-height: 500px;
+}
+
+.notes-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all var(--transition-fast);
+}
+
+.toolbar-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+.toolbar-btn:active,
+.toolbar-btn.active {
+    background: var(--accent-light);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.toolbar-btn .icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.toolbar-sep {
+    width: 1px;
+    height: 24px;
+    background: var(--border-color);
+    margin: 0 var(--space-xs);
+}
+
+.toolbar-select {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8125rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.toolbar-select:hover {
+    border-color: var(--text-muted);
+}
+
+.toolbar-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.notes-editor {
+    flex: 1;
+    min-height: 300px;
+    max-height: 60vh;
+    padding: var(--space-lg);
+    overflow-y: auto;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.notes-editor:focus {
+    outline: none;
+}
+
+.notes-editor:empty::before {
+    content: attr(placeholder);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+/* Notes editor content styles */
+.notes-editor ul,
+.notes-editor ol {
+    margin: var(--space-sm) 0;
+    padding-left: var(--space-xl);
+}
+
+.notes-editor li {
+    margin-bottom: var(--space-xs);
+}
+
+.notes-editor b,
+.notes-editor strong {
+    font-weight: 600;
+}
+
+.notes-editor i,
+.notes-editor em {
+    font-style: italic;
+}
+
+.notes-editor u {
+    text-decoration: underline;
 }
 
 /* ===========================

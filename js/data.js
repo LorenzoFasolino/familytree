@@ -35,6 +35,7 @@ class FamilyTree {
                 children: [],
                 partners: []
             },
+            splitLinks: [], // Array of split link configurations
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -209,6 +210,73 @@ class FamilyTree {
         });
 
         return Array.from(siblings).map(id => this.people.get(id)).filter(Boolean);
+    }
+
+    // Split a link - creates a "ghost node" effect where a person appears in multiple locations
+    // type: 'parent' (split from parents) or 'partner' (split from a partner)
+    // linkedPersonId: the ID of the person on the other end of the split link
+    // ghostContext: 'partner' or 'child' - where the ghost will appear instead
+    splitLink(personId, type, linkedPersonId, ghostContext) {
+        const person = this.people.get(personId);
+        if (!person) return false;
+
+        // Initialize splitLinks if not exists
+        if (!person.splitLinks) {
+            person.splitLinks = [];
+        }
+
+        // Check if this split already exists
+        const existingSplit = person.splitLinks.find(s =>
+            s.type === type && s.linkedPersonId === linkedPersonId
+        );
+        if (existingSplit) return false;
+
+        // Add the split configuration
+        person.splitLinks.push({
+            type: type,
+            linkedPersonId: linkedPersonId,
+            ghostContext: ghostContext,
+            createdAt: Date.now()
+        });
+
+        person.updatedAt = Date.now();
+        this.save();
+        return true;
+    }
+
+    // Remove a split link
+    unsplitLink(personId, type, linkedPersonId) {
+        const person = this.people.get(personId);
+        if (!person || !person.splitLinks) return false;
+
+        const initialLength = person.splitLinks.length;
+        person.splitLinks = person.splitLinks.filter(s =>
+            !(s.type === type && s.linkedPersonId === linkedPersonId)
+        );
+
+        if (person.splitLinks.length < initialLength) {
+            person.updatedAt = Date.now();
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    // Check if a relationship is split
+    isLinkSplit(personId, type, linkedPersonId) {
+        const person = this.people.get(personId);
+        if (!person || !person.splitLinks) return false;
+
+        return person.splitLinks.some(s =>
+            s.type === type && s.linkedPersonId === linkedPersonId
+        );
+    }
+
+    // Get all split links for a person
+    getSplitLinks(personId) {
+        const person = this.people.get(personId);
+        if (!person) return [];
+        return person.splitLinks || [];
     }
 
     // Get all partners (explicit and implicit from children)

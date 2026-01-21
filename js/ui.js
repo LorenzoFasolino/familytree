@@ -257,6 +257,115 @@ const UI = {
         }
     },
 
+    // Notes Modal (Rich Text Editor)
+    notesModal: {
+        element: null,
+        editor: null,
+        currentPersonId: null,
+
+        init() {
+            this.element = document.getElementById('notes-modal');
+            this.editor = document.getElementById('notes-editor');
+            this.titleEl = document.getElementById('notes-modal-title');
+
+            // Close buttons
+            document.getElementById('btn-close-notes').addEventListener('click', () => this.close());
+            document.getElementById('btn-cancel-notes').addEventListener('click', () => this.close());
+
+            // Save button
+            document.getElementById('btn-save-notes').addEventListener('click', () => this.save());
+
+            // Click outside to close
+            this.element.addEventListener('click', (e) => {
+                if (e.target === this.element) this.close();
+            });
+
+            // Toolbar buttons
+            this.element.querySelectorAll('.toolbar-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const cmd = btn.dataset.cmd;
+                    this.execCommand(cmd);
+                    this.editor.focus();
+                });
+            });
+
+            // Font size select
+            const fontSizeSelect = this.element.querySelector('.toolbar-select[data-cmd="fontSize"]');
+            if (fontSizeSelect) {
+                fontSizeSelect.addEventListener('change', (e) => {
+                    this.execCommand('fontSize', e.target.value);
+                    this.editor.focus();
+                });
+            }
+
+            // Keyboard shortcuts in editor
+            this.editor.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key.toLowerCase()) {
+                        case 'b':
+                            e.preventDefault();
+                            this.execCommand('bold');
+                            break;
+                        case 'i':
+                            e.preventDefault();
+                            this.execCommand('italic');
+                            break;
+                        case 'u':
+                            e.preventDefault();
+                            this.execCommand('underline');
+                            break;
+                    }
+                }
+            });
+        },
+
+        open(person) {
+            this.currentPersonId = person.id;
+            this.titleEl.textContent = `Note - ${familyTree.getFullName(person)}`;
+
+            // Load existing notes (HTML or plain text)
+            this.editor.innerHTML = person.notes || '';
+
+            // Reset font size select to default
+            const fontSizeSelect = this.element.querySelector('.toolbar-select[data-cmd="fontSize"]');
+            if (fontSizeSelect) fontSizeSelect.value = '3';
+
+            this.element.classList.remove('hidden');
+            this.editor.focus();
+        },
+
+        close() {
+            this.element.classList.add('hidden');
+            this.currentPersonId = null;
+            this.editor.innerHTML = '';
+        },
+
+        save() {
+            if (!this.currentPersonId) return;
+
+            const notesHtml = this.editor.innerHTML.trim();
+
+            // Clean up empty content
+            const cleanNotes = notesHtml === '<br>' || notesHtml === '<div><br></div>' ? '' : notesHtml;
+
+            familyTree.updatePerson(this.currentPersonId, { notes: cleanNotes });
+
+            UI.toast.show('Note salvate', 'success');
+            this.close();
+
+            // Refresh panel if open
+            if (UI.panel.currentPerson && UI.panel.currentPerson.id === this.currentPersonId) {
+                UI.panel.currentPerson = familyTree.getPerson(this.currentPersonId);
+                UI.panel.render();
+            }
+        },
+
+        execCommand(cmd, value = null) {
+            document.execCommand(cmd, false, value);
+        }
+    },
+
     // Link Existing Person Modal
     linkModal: {
         element: null,
@@ -512,13 +621,21 @@ const UI = {
         </div>`;
             }
 
-            // Notes
-            if (person.notes) {
-                html += `<div class="detail-section">
-          <div class="detail-section-title">Note</div>
-          <p style="font-size: 0.875rem; color: var(--text-secondary);">${person.notes}</p>
+            // Notes section (always show with edit button)
+            html += `<div class="detail-section">
+          <div class="detail-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Note</span>
+            <button class="btn btn-icon" id="btn-edit-notes" title="Modifica note" style="padding: 4px;">
+              <svg class="icon" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </div>
+          <div class="notes-content" style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6;">
+            ${person.notes ? person.notes : '<em style="color: var(--text-muted);">Nessuna nota. Clicca per aggiungere.</em>'}
+          </div>
         </div>`;
-            }
 
             // Relationships
             const renderRelations = (title, ids, type) => {
@@ -528,13 +645,26 @@ const UI = {
                 return `<div class="detail-section">
           <div class="detail-section-title">${title}</div>
           <div class="relation-list">
-            ${people.map(p => `
-              <div class="relation-item" data-id="${p.id}">
+            ${people.map(p => {
+                    // Check if this relationship is split
+                    const isSplit = familyTree.isLinkSplit(person.id, type, p.id);
+                    const ghostBadge = isSplit ? '<span class="ghost-badge" title="Nodo duplicato - clicca per vedere">👻</span>' : '';
+                    const splitBtn = type ? (isSplit
+                        ? `<button class="relation-unsplit" data-type="${type}" data-related="${p.id}" title="Riunisci (mostra collegamento)">🔗</button>`
+                        : `<button class="relation-split" data-type="${type}" data-related="${p.id}" title="Separa (nascondi collegamento)">✂️</button>`)
+                        : '';
+
+                    return `
+              <div class="relation-item ${isSplit ? 'is-ghost' : ''}" data-id="${p.id}">
                 <div class="relation-avatar">${p.photo ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : familyTree.getGenderEmoji(p)}</div>
-                <span class="relation-name">${familyTree.getFullName(p)}</span>
-                ${type ? `<button class="relation-remove" data-type="${type}" title="Rimuovi relazione">×</button>` : ''}
+                <span class="relation-name">${familyTree.getFullName(p)}${ghostBadge}</span>
+                <div class="relation-actions">
+                  ${splitBtn}
+                  ${type ? `<button class="relation-remove" data-type="${type}" title="Rimuovi relazione">×</button>` : ''}
+                </div>
               </div>
-            `).join('')}
+            `;
+                }).join('')}
           </div>
         </div>`;
             };
@@ -545,7 +675,7 @@ const UI = {
 
             const siblings = familyTree.getSiblings(person.id);
             if (siblings.length > 0) {
-                html += renderRelations('Fratelli/Sorelle', siblings.map(s => s.id), null); // No delete for siblings
+                html += renderRelations('Fratelli/Sorelle', siblings.map(s => s.id), null); // No split/delete for siblings
             }
 
             this.contentEl.innerHTML = html;
@@ -585,6 +715,57 @@ const UI = {
                     );
                 });
             });
+
+            // Add click handlers for split buttons
+            this.contentEl.querySelectorAll('.relation-split').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const relatedId = btn.dataset.related;
+                    const type = btn.dataset.type;
+                    const relatedPerson = familyTree.getPerson(relatedId);
+                    const relatedName = relatedPerson ? familyTree.getFullName(relatedPerson) : 'questa persona';
+
+                    if (familyTree.splitLink(person.id, type, relatedId, type)) {
+                        UI.toast.show(`Collegamento con ${relatedName} separato`, 'success');
+                        this.render();
+                        if (window.app) window.app.refresh();
+                    }
+                });
+            });
+
+            // Add click handlers for unsplit buttons
+            this.contentEl.querySelectorAll('.relation-unsplit').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const relatedId = btn.dataset.related;
+                    const type = btn.dataset.type;
+                    const relatedPerson = familyTree.getPerson(relatedId);
+                    const relatedName = relatedPerson ? familyTree.getFullName(relatedPerson) : 'questa persona';
+
+                    if (familyTree.unsplitLink(person.id, type, relatedId)) {
+                        UI.toast.show(`Collegamento con ${relatedName} ripristinato`, 'success');
+                        this.render();
+                        if (window.app) window.app.refresh();
+                    }
+                });
+            });
+
+            // Add click handler for edit notes button
+            const editNotesBtn = this.contentEl.querySelector('#btn-edit-notes');
+            if (editNotesBtn) {
+                editNotesBtn.addEventListener('click', () => {
+                    UI.notesModal.open(person);
+                });
+            }
+
+            // Also allow clicking on notes content to edit
+            const notesContent = this.contentEl.querySelector('.notes-content');
+            if (notesContent) {
+                notesContent.style.cursor = 'pointer';
+                notesContent.addEventListener('click', () => {
+                    UI.notesModal.open(person);
+                });
+            }
         },
 
         deletePerson() {
@@ -645,6 +826,7 @@ const UI = {
         this.modal.init();
         this.linkModal.init();
         this.toast.init();
+        this.notesModal.init();
         this.quickMenu.init();
         this.panel.init();
         this.confirm.init();

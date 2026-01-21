@@ -340,6 +340,68 @@
         </div>
     </div>
 
+    <!-- Notes Modal -->
+    <div class="modal-overlay hidden" id="notes-modal">
+        <div class="modal modal-notes">
+            <div class="modal-header">
+                <h2 class="modal-title" id="notes-modal-title">Note</h2>
+                <button class="btn btn-icon" id="btn-close-notes">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="notes-toolbar">
+                <button type="button" class="toolbar-btn" data-cmd="bold" title="Grassetto (Ctrl+B)">
+                    <strong>B</strong>
+                </button>
+                <button type="button" class="toolbar-btn" data-cmd="italic" title="Corsivo (Ctrl+I)">
+                    <em>I</em>
+                </button>
+                <button type="button" class="toolbar-btn" data-cmd="underline" title="Sottolineato (Ctrl+U)">
+                    <u>U</u>
+                </button>
+                <span class="toolbar-sep"></span>
+                <button type="button" class="toolbar-btn" data-cmd="insertUnorderedList" title="Elenco puntato">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <line x1="9" y1="6" x2="20" y2="6" />
+                        <line x1="9" y1="12" x2="20" y2="12" />
+                        <line x1="9" y1="18" x2="20" y2="18" />
+                        <circle cx="4" cy="6" r="1.5" fill="currentColor" />
+                        <circle cx="4" cy="12" r="1.5" fill="currentColor" />
+                        <circle cx="4" cy="18" r="1.5" fill="currentColor" />
+                    </svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-cmd="insertOrderedList" title="Elenco numerato">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <line x1="10" y1="6" x2="20" y2="6" />
+                        <line x1="10" y1="12" x2="20" y2="12" />
+                        <line x1="10" y1="18" x2="20" y2="18" />
+                        <text x="4" y="8" font-size="7" fill="currentColor">1</text>
+                        <text x="4" y="14" font-size="7" fill="currentColor">2</text>
+                        <text x="4" y="20" font-size="7" fill="currentColor">3</text>
+                    </svg>
+                </button>
+                <span class="toolbar-sep"></span>
+                <select class="toolbar-select" data-cmd="fontSize" title="Dimensione testo">
+                    <option value="1">Molto piccolo</option>
+                    <option value="2">Piccolo</option>
+                    <option value="3" selected>Normale</option>
+                    <option value="4">Grande</option>
+                    <option value="5">Più grande</option>
+                    <option value="6">Molto grande</option>
+                </select>
+            </div>
+            <div class="notes-editor" id="notes-editor" contenteditable="true" placeholder="Scrivi le tue note qui...">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-notes">Annulla</button>
+                <button type="button" class="btn btn-primary" id="btn-save-notes">Salva</button>
+            </div>
+        </div>
+    </div>
+
     <!-- File Input for Import -->
     <input type="file" id="import-file" accept=".json" hidden>
 
